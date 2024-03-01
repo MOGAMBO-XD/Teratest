@@ -18,11 +18,14 @@ def download_video(update, context):
         update.message.reply_text("Failed to download video. Please check the URL and API key.")
 
 def main():
-    updater = Updater(TOKEN, use_context=True)
+    updater = Updater(TOKEN)
     dp = updater.dispatcher
     dp.add_handler(CommandHandler("download", download_video))
     updater.start_polling()
     updater.idle()
+
+if __name__ == '__main__':
+    main()
 
 if __name__ == '__main__':
     main()
