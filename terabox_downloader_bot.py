@@ -38,12 +38,15 @@ def download_file(update: Update, context: CallbackContext) -> None:
         update.message.reply_text("Sorry, failed to download the file from Terabox.")
 
 # Function to upload files to Telegram
+# Function to upload files to Telegram
 def upload_file(update: Update, context: CallbackContext) -> None:
-    file_path = update.message.text
-    if os.path.exists(file_path):
-        context.bot.send_document(chat_id=update.effective_chat.id, document=open(file_path, 'rb'))
-    else:
-        update.message.reply_text("File not found!")
+    file_id = update.message.document.file_id
+    new_file = context.bot.get_file(file_id)
+    file_path = new_file.download()
+    context.bot.send_document(chat_id=update.effective_chat.id, document=open(file_path, 'rb'))
+    os.remove(file_path)
+
+  
 
 def main() -> None:
     updater = Updater(TELEGRAM_TOKEN)
