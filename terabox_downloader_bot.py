@@ -1,6 +1,5 @@
 import logging
-from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import requests
 import os
 
@@ -12,21 +11,22 @@ logger = logging.getLogger(__name__)
 # Define the token for your bot
 TOKEN = "5851945481:AAHejMpNRJFtc1ZtQmkcVZzZUCzw2lYz2Ms"
 
+# Define the API key for Terabox
+TERABOX_API_KEY = "0795d6076bmshccea2334ece5a30p1b4e9djsn654ea7e07eb7"
+
 # Define the base URL for Terabox downloader API
 TERABOX_API_URL = "https://api.terabox.me"
 
-# Define the handler for the /start command
-def start(update: Update, context: CallbackContext) -> None:
-    if update.effective_chat.type == "private":
-        update.message.reply_text('Welcome to Terabox Downloader Bot! Send me a link to a file and I will download it for you.')
-    else:
-        context.bot.send_message(update.effective_chat.id, text='Welcome to Terabox Downloader Bot! Send me a link to a file and I will download it for you.')
+# Define the /start command handler
+def start(update, context):
+    context.bot.send_message(chat_id=update.effective_chat.id, text="Welcome to Terabox Downloader Bot! Send me a link to a file and I will download it for you.")
 
-# Define the handler for regular messages
-def download_file(update: Update, context: CallbackContext) -> None:
+# Define the function to handle file downloads
+def download_file(update, context):
     file_url = update.message.text
     download_url = f"{TERABOX_API_URL}/download?link={file_url}"
-    response = requests.get(download_url, stream=True)
+    headers = {'Authorization': f'Bearer {TERABOX_API_KEY}'}
+    response = requests.get(download_url, headers=headers, stream=True)
     if response.status_code == 200:
         filename = os.path.basename(file_url)
         with open(filename, 'wb') as file:
@@ -37,16 +37,24 @@ def download_file(update: Update, context: CallbackContext) -> None:
     else:
         update.message.reply_text("Sorry, I couldn't download the file. Please make sure the link is correct.")
 
-def main() -> None:
-    updater = Updater(TOKEN)
-    dispatcher = updater.dispatcher
+def main():
+    # Create the Updater and pass it your bot's token
+    updater = Updater(token=TOKEN, use_context=True)
 
-    # Register handlers
-    dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, download_file))
+    # Get the dispatcher to register handlers
+    dp = updater.dispatcher
+
+    # Register command handlers
+    dp.add_handler(CommandHandler("start", start))
+
+    # Register a handler for regular messages
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, download_file))
 
     # Start the Bot
     updater.start_polling()
+
+    # Run the bot until you press Ctrl-C or the process receives SIGINT,
+    # SIGTERM or SIGABRT
     updater.idle()
 
 if __name__ == '__main__':
