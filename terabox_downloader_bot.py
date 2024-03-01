@@ -1,32 +1,32 @@
 import logging
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
-import requests
 import os
+import requests
+from telegram import Update, Bot
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
 # Set up logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Define the token for your bot
-TOKEN = "5851945481:AAHejMpNRJFtc1ZtQmkcVZzZUCzw2lYz2Ms"
+# Telegram bot token
+TELEGRAM_TOKEN = "5851945481:AAHejMpNRJFtc1ZtQmkcVZzZUCzw2lYz2Ms"
 
-# Define the API key for Terabox
+# Terabox API key
 TERABOX_API_KEY = "0795d6076bmshccea2334ece5a30p1b4e9djsn654ea7e07eb7"
 
-# Define the base URL for Terabox downloader API
-TERABOX_API_URL = "https://api.terabox.me"
+# Terabox base URL
+TERABOX_BASE_URL = "https://api.terabox.me"
 
-# Define the /start command handler
-def start(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id, text="Welcome to Terabox Downloader Bot! Send me a link to a file and I will download it for you.")
+# Function to handle /start command
+def start(update: Update, context: CallbackContext) -> None:
+    update.message.reply_text('Welcome to Terabox Uploader and Downloader Bot!')
 
-# Define the function to handle file downloads
-def download_file(update, context):
+# Function to download files from Terabox
+def download_file(update: Update, context: CallbackContext) -> None:
     file_url = update.message.text
-    download_url = f"{TERABOX_API_URL}/download?link={file_url}"
     headers = {'Authorization': f'Bearer {TERABOX_API_KEY}'}
-    response = requests.get(download_url, headers=headers, stream=True)
+    response = requests.get(f"{TERABOX_BASE_URL}/download?link={file_url}", headers=headers, stream=True)
     if response.status_code == 200:
         filename = os.path.basename(file_url)
         with open(filename, 'wb') as file:
@@ -35,26 +35,25 @@ def download_file(update, context):
                     file.write(chunk)
         update.message.reply_text(f"File downloaded successfully! You can find it as {filename}.")
     else:
-        update.message.reply_text("Sorry, I couldn't download the file. Please make sure the link is correct.")
+        update.message.reply_text("Sorry, failed to download the file from Terabox.")
 
-def main():
-    # Create the Updater and pass it your bot's token
-    updater = Updater(token=TOKEN, use_context=True)
+# Function to upload files to Telegram
+def upload_file(update: Update, context: CallbackContext) -> None:
+    file_path = update.message.text
+    if os.path.exists(file_path):
+        context.bot.send_document(chat_id=update.effective_chat.id, document=open(file_path, 'rb'))
+    else:
+        update.message.reply_text("File not found!")
 
-    # Get the dispatcher to register handlers
-    dp = updater.dispatcher
+def main() -> None:
+    updater = Updater(TELEGRAM_TOKEN)
+    dispatcher = updater.dispatcher
 
-    # Register command handlers
-    dp.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(MessageHandler(Filters.regex(r'^https?:\/\/.*'), download_file))
+    dispatcher.add_handler(MessageHandler(Filters.document.url, upload_file))
 
-    # Register a handler for regular messages
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, download_file))
-
-    # Start the Bot
     updater.start_polling()
-
-    # Run the bot until you press Ctrl-C or the process receives SIGINT,
-    # SIGTERM or SIGABRT
     updater.idle()
 
 if __name__ == '__main__':
