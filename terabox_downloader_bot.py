@@ -1,5 +1,5 @@
 import logging
-from telegram import Update, Bot
+from telegram import Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 import requests
 import os
@@ -17,7 +17,7 @@ TERABOX_API_URL = "https://api.terabox.me"
 
 # Define the handler for the /start command
 def start(update: Update, context: CallbackContext) -> None:
-    if update.message:
+    if update.effective_chat.type == "private":
         update.message.reply_text('Welcome to Terabox Downloader Bot! Send me a link to a file and I will download it for you.')
     else:
         context.bot.send_message(update.effective_chat.id, text='Welcome to Terabox Downloader Bot! Send me a link to a file and I will download it for you.')
